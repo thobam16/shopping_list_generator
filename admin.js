@@ -3,7 +3,7 @@ import {
     collection, 
     addDoc, 
     deleteDoc,
-    setDoc, // <--- Added this to allow updates
+    setDoc, 
     doc, 
     onSnapshot 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -13,17 +13,22 @@ import {
     signOut 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+// DOM Elements
 const loginForm = document.getElementById('login-form');
 const adminPanel = document.getElementById('admin-panel');
 const ingContainer = document.getElementById('ingredients-container');
 const recipeListContainer = document.getElementById('recipe-list');
 const recipeForm = document.getElementById('recipe-form');
-const submitBtn = recipeForm.querySelector('button[type="submit"]'); // Grab the save button
+const submitBtn = recipeForm.querySelector('button[type="submit"]');
 const titleInput = document.getElementById('recipe-title');
-const imageInput = document.getElementById('recipe-image');
+
+// Image Elements
+const imageFileInput = document.getElementById('image-file');
+const imageHiddenInput = document.getElementById('recipe-image-base64');
+const imagePreview = document.getElementById('image-preview');
 
 let unsubscribeRecipes = null;
-let editingId = null; // <--- Tracks if we are editing (null means creating new)
+let editingId = null; 
 
 // --- 1. Auth State & Listener ---
 onAuthStateChanged(auth, (user) => {
@@ -46,7 +51,41 @@ document.getElementById('login-btn').addEventListener('click', () => {
 
 document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
 
-// --- 2. Load, Delete & Edit Logic ---
+// --- 2. Image Compression Logic ---
+imageFileInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    resizeAndCompressImage(file, (resultBase64) => {
+        imageHiddenInput.value = resultBase64; 
+        imagePreview.innerHTML = `<img src="${resultBase64}" style="width: 100%; border-radius: 8px;">`;
+    });
+});
+
+function resizeAndCompressImage(file, callback) {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 600; 
+            const scaleSize = MAX_WIDTH / img.width;
+            
+            canvas.width = MAX_WIDTH;
+            canvas.height = img.height * scaleSize;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            callback(dataUrl);
+        };
+    };
+}
+
+// --- 3. Load, Delete & Edit Logic ---
 function loadRecipes() {
     unsubscribeRecipes = onSnapshot(collection(db, "recipes"), (snapshot) => {
         recipeListContainer.innerHTML = ''; 
@@ -61,7 +100,6 @@ function loadRecipes() {
             const id = docSnapshot.id;
 
             const item = document.createElement('div');
-            // Added styling for the button group
             item.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #fff; border: 1px solid #eee; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);";
             
             item.innerHTML = `
@@ -72,7 +110,6 @@ function loadRecipes() {
                 </div>
             `;
 
-            // Attach Events
             item.querySelector('.delete-btn').addEventListener('click', () => handleDelete(id, recipe.title));
             item.querySelector('.edit-btn').addEventListener('click', () => handleEdit(id, recipe));
             
@@ -81,29 +118,33 @@ function loadRecipes() {
     });
 }
 
-// --- NEW: Handle Edit Click ---
 function handleEdit(id, recipe) {
-    // 1. Set global edit state
     editingId = id;
-    
-    // 2. Scroll to top so user sees the form
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // 3. Populate Title
     titleInput.value = recipe.title;
-    imageInput.value = recipe.image || ''; // <--- NEW: Load existing image URL
-
-    // 4. Populate Ingredients
-    ingContainer.innerHTML = ''; // Clear existing empty rows
-    recipe.ingredients.forEach(ing => {
-        addRow(ing); // Add row with data
-    });
-
-    // 5. Change Button Text and Color to indicate Edit Mode
-    submitBtn.textContent = "Update Recipe";
-    submitBtn.style.background = "#f39c12"; // Orange for update
     
-    // 6. Add a "Cancel" button if it doesn't exist
+    // Load Image if exists
+    if(recipe.image) {
+        imageHiddenInput.value = recipe.image;
+        imagePreview.innerHTML = `<img src="${recipe.image}" style="width: 100%; border-radius: 8px;">`;
+    } else {
+        imageHiddenInput.value = "";
+        imagePreview.innerHTML = "";
+    }
+    
+    // Load Ingredients
+    ingContainer.innerHTML = ''; 
+    if (recipe.ingredients) {
+        recipe.ingredients.forEach(ing => addRow(ing));
+    } else {
+        addRow();
+    }
+
+    // Update UI for Edit Mode
+    submitBtn.textContent = "Update Recipe";
+    submitBtn.style.background = "#f39c12"; 
+    
     if(!document.getElementById('cancel-edit-btn')) {
         const cancelBtn = document.createElement('button');
         cancelBtn.id = 'cancel-edit-btn';
@@ -111,7 +152,7 @@ function handleEdit(id, recipe) {
         cancelBtn.className = 'btn btn-outline';
         cancelBtn.textContent = "Cancel Edit";
         cancelBtn.style.marginLeft = "10px";
-        cancelBtn.onclick = resetForm; // Clicking cancel resets everything
+        cancelBtn.onclick = resetForm; 
         submitBtn.parentNode.insertBefore(cancelBtn, submitBtn.nextSibling);
     }
 }
@@ -120,23 +161,21 @@ async function handleDelete(id, title) {
     if(confirm(`Are you sure you want to delete "${title}"?`)) {
         try {
             await deleteDoc(doc(db, "recipes", id));
-            if(editingId === id) resetForm(); // If we deleted what we were editing, reset form
+            if(editingId === id) resetForm(); 
         } catch (err) {
             alert("Error deleting: " + err.message);
         }
     }
 }
 
-// --- 3. Add Recipe Form Logic ---
+// --- 4. Ingredient Form Logic ---
 const units = ["units", "grams", "ml", "cups", "tbsp", "tsp"];
 const cats = ["produce", "dairy", "meat_seafood", "baked", "pantry", "other"];
 
-// Updated addRow to accept optional data
 function addRow(data = null) {
     const row = document.createElement('div');
     row.className = 'ingredient-row';
     
-    // Helper to safely get values if data exists
     const val = (key) => data ? data[key] : '';
     
     row.innerHTML = `
@@ -153,16 +192,16 @@ function addRow(data = null) {
     ingContainer.appendChild(row);
 }
 
-// Initial Setup
 addRow(); 
 document.getElementById('add-row-btn').addEventListener('click', () => addRow());
 
-// --- 4. Submit Handler (Create OR Update) ---
+// --- 5. Submit Handler (Create OR Update) ---
 recipeForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const title = titleInput.value;
-    const image = imageInput.value; // <--- NEW: Get the value
+    const image = imageHiddenInput.value; // Get the compressed base64 string
+    
     const rows = document.querySelectorAll('.ingredient-row');
     const ingredients = Array.from(rows).map(row => ({
         name: row.querySelector('.name').value,
@@ -170,19 +209,18 @@ recipeForm.addEventListener('submit', async (e) => {
         unit: row.querySelector('.unit').value,
         category: row.querySelector('.cat').value
     }));
-    const recipeData = { title, image, ingredients }; // <--- Include image in data
+
+    const recipeData = { title, image, ingredients };
 
     try {
         if (editingId) {
-            // UPDATE existing recipe
-            await setDoc(doc(db, "recipes", editingId), { title, ingredients });
+            await setDoc(doc(db, "recipes", editingId), recipeData);
             alert("Recipe Updated!");
         } else {
-            // CREATE new recipe
-            await addDoc(collection(db, "recipes"), { title, ingredients });
+            await addDoc(collection(db, "recipes"), recipeData);
             alert("Recipe Saved!");
         }
-        resetForm(); // Clear everything
+        resetForm(); 
     } catch(err) {
         alert("Error saving: " + err.message);
     }
@@ -191,15 +229,15 @@ recipeForm.addEventListener('submit', async (e) => {
 function resetForm() {
     recipeForm.reset();
     ingContainer.innerHTML = '';
-    addRow(); // Add one empty row
-    editingId = null; // Clear edit mode
+    imagePreview.innerHTML = '';       
+    imageHiddenInput.value = '';       
+    addRow(); 
+    editingId = null; 
     
-    // Reset button styles
     submitBtn.textContent = "Save Recipe";
-    submitBtn.style.background = ""; // Reset to default CSS
+    submitBtn.style.background = ""; 
     submitBtn.classList.add('btn-success');
     
-    // Remove cancel button if exists
     const cancelBtn = document.getElementById('cancel-edit-btn');
     if(cancelBtn) cancelBtn.remove();
 }
