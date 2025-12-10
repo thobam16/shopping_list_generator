@@ -21,10 +21,17 @@ async function init() {
             // Create HTML Card
             const card = document.createElement('div');
             card.className = 'card';
+            
+            // Use a default food placeholder if no image is provided
+            const bgImage = data.image ? data.image : 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=800&auto=format&fit=crop';
+
             card.innerHTML = `
                 <label>
-                    <input type="checkbox" value="${doc.id}" style="transform: scale(1.5); margin-right: 10px;"> 
-                    <b>${data.title}</b>
+                    <div class="card-img" style="background-image: url('${bgImage}')"></div>
+                    <div class="card-content">
+                        <input type="checkbox" value="${doc.id}"> 
+                        <span class="recipe-title">${data.title}</span>
+                    </div>
                 </label>
             `;
             

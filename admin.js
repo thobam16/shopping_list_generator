@@ -20,6 +20,7 @@ const recipeListContainer = document.getElementById('recipe-list');
 const recipeForm = document.getElementById('recipe-form');
 const submitBtn = recipeForm.querySelector('button[type="submit"]'); // Grab the save button
 const titleInput = document.getElementById('recipe-title');
+const imageInput = document.getElementById('recipe-image');
 
 let unsubscribeRecipes = null;
 let editingId = null; // <--- Tracks if we are editing (null means creating new)
@@ -90,6 +91,7 @@ function handleEdit(id, recipe) {
 
     // 3. Populate Title
     titleInput.value = recipe.title;
+    imageInput.value = recipe.image || ''; // <--- NEW: Load existing image URL
 
     // 4. Populate Ingredients
     ingContainer.innerHTML = ''; // Clear existing empty rows
@@ -160,6 +162,7 @@ recipeForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const title = titleInput.value;
+    const image = imageInput.value; // <--- NEW: Get the value
     const rows = document.querySelectorAll('.ingredient-row');
     const ingredients = Array.from(rows).map(row => ({
         name: row.querySelector('.name').value,
@@ -167,6 +170,7 @@ recipeForm.addEventListener('submit', async (e) => {
         unit: row.querySelector('.unit').value,
         category: row.querySelector('.cat').value
     }));
+    const recipeData = { title, image, ingredients }; // <--- Include image in data
 
     try {
         if (editingId) {
