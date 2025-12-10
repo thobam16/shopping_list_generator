@@ -5,6 +5,7 @@ const recipeContainer = document.getElementById('recipe-container');
 const generateBtn = document.getElementById('generate-btn');
 const listSection = document.getElementById('shopping-list-section');
 const listOutput = document.getElementById('list-output');
+const filterContainer = document.getElementById('filter-container'); // Add this selector
 
 let allRecipes = [];
 
@@ -12,41 +13,96 @@ let allRecipes = [];
 async function init() {
     try {
         const querySnapshot = await getDocs(collection(db, "recipes"));
-        recipeContainer.innerHTML = "";
+        allRecipes = []; // Reset global array
         
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            allRecipes.push({ id: doc.id, ...data });
-
-            // Create HTML Card
-            const card = document.createElement('div');
-            card.className = 'card';
-            
-            // Use a default food placeholder if no image is provided
-            const bgImage = data.image ? data.image : 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=800&auto=format&fit=crop';
-
-            card.innerHTML = `
-                <label>
-                    <div class="card-img" style="background-image: url('${bgImage}')"></div>
-                    <div class="card-content">
-                        <input type="checkbox" value="${doc.id}"> 
-                        <span class="recipe-title">${data.title}</span>
-                    </div>
-                </label>
-            `;
-            
-            // Highlight effect
-            card.addEventListener('change', (e) => {
-                if(e.target.checked) card.classList.add('selected');
-                else card.classList.remove('selected');
-            });
-            
-            recipeContainer.appendChild(card);
+            // Store data with ID and ensure a default cuisine exists
+            allRecipes.push({ id: doc.id, ...data, cuisine: data.cuisine || 'General' });
         });
+
+        generateFilters(); // Create the filter buttons
+        renderRecipes(allRecipes); // Render all recipes initially
+
     } catch (e) {
         console.error("Error", e);
         recipeContainer.innerHTML = "<p>Error loading recipes. Check console.</p>";
     }
+}
+
+// NEW: Function to render the cards (extracted from init)
+function renderRecipes(recipesToRender) {
+    recipeContainer.innerHTML = "";
+    
+    if(recipesToRender.length === 0) {
+        recipeContainer.innerHTML = "<p>No recipes found for this category.</p>";
+        return;
+    }
+
+    recipesToRender.forEach((data) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        
+        const bgImage = data.image ? data.image : 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=800&auto=format&fit=crop';
+
+        // Note: added data.cuisine check below
+        card.innerHTML = `
+            <label>
+                <div class="card-img" style="background-image: url('${bgImage}')">
+                    <span class="cuisine-tag">${data.cuisine}</span>
+                </div>
+                <div class="card-content">
+                    <input type="checkbox" value="${data.id}"> 
+                    <span class="recipe-title">${data.title}</span>
+                </div>
+            </label>
+        `;
+        
+        // Re-attach listener
+        card.addEventListener('change', (e) => {
+            if(e.target.checked) card.classList.add('selected');
+            else card.classList.remove('selected');
+        });
+        
+        // Persist selection state if re-rendering
+        const checkbox = card.querySelector('input');
+        // If this ID is already checked in the DOM (hidden or visible), keep it checked?
+        // Simpler approach: We just render. If you filter, you might lose selection state 
+        // unless we track selected IDs globally. 
+        // For a simple MVP, let's keep it simple.
+        
+        recipeContainer.appendChild(card);
+    });
+}
+
+// NEW: Generate Filter Buttons
+function generateFilters() {
+    // 1. Get unique cuisines present in the data
+    const cuisines = ['All', ...new Set(allRecipes.map(r => r.cuisine))].sort();
+    
+    filterContainer.innerHTML = '';
+
+    cuisines.forEach(c => {
+        const btn = document.createElement('button');
+        btn.textContent = c;
+        btn.className = c === 'All' ? 'filter-btn active' : 'filter-btn';
+        
+        btn.addEventListener('click', () => {
+            // Visual Active State
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Filter Logic
+            if (c === 'All') {
+                renderRecipes(allRecipes);
+            } else {
+                const filtered = allRecipes.filter(r => r.cuisine === c);
+                renderRecipes(filtered);
+            }
+        });
+
+        filterContainer.appendChild(btn);
+    });
 }
 
 // 2. Generate Button Logic

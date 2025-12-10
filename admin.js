@@ -21,6 +21,7 @@ const recipeListContainer = document.getElementById('recipe-list');
 const recipeForm = document.getElementById('recipe-form');
 const submitBtn = recipeForm.querySelector('button[type="submit"]');
 const titleInput = document.getElementById('recipe-title');
+const cuisineInput = document.getElementById('recipe-cuisine');
 
 // Image Elements
 const imageFileInput = document.getElementById('image-file');
@@ -123,6 +124,7 @@ function handleEdit(id, recipe) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     titleInput.value = recipe.title;
+    cuisineInput.value = recipe.cuisine || 'General';
     
     // Load Image if exists
     if(recipe.image) {
@@ -199,8 +201,9 @@ document.getElementById('add-row-btn').addEventListener('click', () => addRow())
 recipeForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const title = titleInput.value;
-    const image = imageHiddenInput.value; // Get the compressed base64 string
+    const title   = titleInput.value;
+    const cuisine = cuisineInput.value; 
+    const image   = imageHiddenInput.value; 
     
     const rows = document.querySelectorAll('.ingredient-row');
     const ingredients = Array.from(rows).map(row => ({
@@ -210,7 +213,7 @@ recipeForm.addEventListener('submit', async (e) => {
         category: row.querySelector('.cat').value
     }));
 
-    const recipeData = { title, image, ingredients };
+    const recipeData = { title, cuisine, image, ingredients };
 
     try {
         if (editingId) {
@@ -228,6 +231,7 @@ recipeForm.addEventListener('submit', async (e) => {
 
 function resetForm() {
     recipeForm.reset();
+    cuisineInput.value     = 'General'; 
     ingContainer.innerHTML = '';
     imagePreview.innerHTML = '';       
     imageHiddenInput.value = '';       

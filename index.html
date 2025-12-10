@@ -10,15 +10,20 @@
 <body>
     <div class="container">
         <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1>Weekly Planner</h1>
+            <h1>Shopping List Generator</h1>
             <a href="admin.html" class="no-print" style="color: #999; text-decoration: none; font-size: 0.9rem;">Admin Login</a>
         </header>
 
         <section id="recipe-selection" class="no-print">
             <p>Select the meals you want to cook this week:</p>
+
+            <div id="filter-container" class="filter-bar no-print">
+                </div>
+            
             <div id="recipe-container" class="recipe-grid">
                 <p>Loading recipes...</p>
             </div>
+        
             <button id="generate-btn" class="btn btn-success" style="width: 100%; font-weight: bold; padding: 15px;">Generate Shopping List</button>
         </section>
 

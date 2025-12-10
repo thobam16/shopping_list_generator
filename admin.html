@@ -30,13 +30,26 @@
                 <label>Recipe Title</label>
                 <input type="text" id="recipe-title" required style="margin-bottom: 10px;">
 
+                <label>Cuisine Type</label>
+                <select id="recipe-cuisine" style="margin-bottom: 20px;">
+                    <option value="General">General</option>
+                    <option value="Italian">Italian</option>
+                    <option value="Indian">Indian</option>
+                    <option value="Mexican">Mexican</option>
+                    <option value="Asian">Asian</option>
+                    <option value="Mediterranean">Mediterranean</option>
+                    <option value="American">American</option>
+                    <option value="Moroccan">Moroccan</option>
+                    <option value="Vegetarian">Vegetarian</option>
+                </select>
+
                 <label>Recipe Image</label>
                 <div style="margin-bottom: 20px;">
                     <input type="file" id="image-file" accept="image/*">
                     <input type="hidden" id="recipe-image-base64">
                     <div id="image-preview" style="margin-top: 10px; max-width: 200px;"></div>
                 </div>            
-                    
+
                 <label>Ingredients</label>
                 <div id="ingredients-container"></div>
                 
