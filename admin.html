@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Panel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Recipe Admin</h1>
+            <a href="index.html">&larr; Back to Home</a>
+        </header>
+
+        <div id="login-form" class="admin-form" style="max-width: 400px; margin: 50px auto;">
+            <h2>Login Required</h2>
+            <input type="email" id="email" placeholder="Email" style="margin-bottom: 10px;">
+            <input type="password" id="password" placeholder="Password" style="margin-bottom: 20px;">
+            <button id="login-btn" class="btn btn-primary" style="width: 100%">Login</button>
+        </div>
+
+        <div id="admin-panel" class="admin-form" style="display: none;">
+            <div style="display:flex; justify-content:space-between;">
+                <h2>Add New Recipe</h2>
+                <button id="logout-btn" class="btn btn-outline">Logout</button>
+            </div>
+            
+            <form id="recipe-form">
+                <label>Recipe Title</label>
+                <input type="text" id="recipe-title" required style="margin-bottom: 20px;">
+
+                <label>Ingredients</label>
+                <div id="ingredients-container"></div>
+                
+                <button type="button" id="add-row-btn" class="btn btn-outline" style="margin-top:10px;">+ Add Ingredient</button>
+                <hr style="margin: 20px 0;">
+                <button type="submit" class="btn btn-success">Save Recipe</button>
+            </form>
+        </div>
+    </div>
+    <script type="module" src="admin.js"></script>
+</body>
+</html>
