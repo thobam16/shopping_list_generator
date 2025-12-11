@@ -6,8 +6,14 @@ const generateBtn = document.getElementById('generate-btn');
 const listSection = document.getElementById('shopping-list-section');
 const listOutput = document.getElementById('list-output');
 const filterContainer = document.getElementById('filter-container'); // Add this selector
+const modal = document.getElementById('recipe-modal');
+const closeModal = document.querySelector('.close-modal');
 
 let allRecipes = [];
+
+// Close modal logic
+closeModal.onclick = () => modal.style.display = "none";
+window.onclick = (event) => { if (event.target == modal) modal.style.display = "none"; }
 
 // 1. Fetch Recipes from Firestore
 async function init() {
@@ -30,7 +36,7 @@ async function init() {
     }
 }
 
-// NEW: Function to render the cards (extracted from init)
+// Function to render the cards (extracted from init)
 function renderRecipes(recipesToRender) {
     recipeContainer.innerHTML = "";
     
@@ -45,37 +51,65 @@ function renderRecipes(recipesToRender) {
         
         const bgImage = data.image ? data.image : 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=800&auto=format&fit=crop';
 
-        // Note: added data.cuisine check below
+        // UPDATED HTML: Added wrapper div for checkbox+text, and a separate View Button
         card.innerHTML = `
             <label>
                 <div class="card-img" style="background-image: url('${bgImage}')">
                     <span class="cuisine-tag">${data.cuisine}</span>
                 </div>
                 <div class="card-content">
-                    <input type="checkbox" value="${data.id}"> 
-                    <span class="recipe-title">${data.title}</span>
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <input type="checkbox" value="${data.id}"> 
+                        <span class="recipe-title">${data.title}</span>
+                    </div>
+                    <button class="btn-mini view-btn" type="button">View</button>
                 </div>
             </label>
         `;
         
-        // Re-attach listener
+        // Checkbox Logic
         card.addEventListener('change', (e) => {
             if(e.target.checked) card.classList.add('selected');
             else card.classList.remove('selected');
         });
-        
-        // Persist selection state if re-rendering
-        const checkbox = card.querySelector('input');
-        // If this ID is already checked in the DOM (hidden or visible), keep it checked?
-        // Simpler approach: We just render. If you filter, you might lose selection state 
-        // unless we track selected IDs globally. 
-        // For a simple MVP, let's keep it simple.
+
+        // NEW: View Button Logic
+        const viewBtn = card.querySelector('.view-btn');
+        viewBtn.addEventListener('click', (e) => {
+            e.preventDefault(); // Stop label from clicking checkbox
+            e.stopPropagation(); // Stop bubbling
+            openRecipeModal(data);
+        });
         
         recipeContainer.appendChild(card);
     });
 }
 
-// NEW: Generate Filter Buttons
+function openRecipeModal(recipe) {
+    // Populate Data
+    document.getElementById('modal-title').innerText = recipe.title;
+    document.getElementById('modal-cuisine').innerText = recipe.cuisine;
+    document.getElementById('modal-ing-count').innerText = `${recipe.ingredients.length} Ingredients`;
+    
+    // Handle Image
+    const bgImage = recipe.image ? recipe.image : 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=800&auto=format&fit=crop';
+    document.getElementById('modal-header-img').style.backgroundImage = `url('${bgImage}')`;
+
+    // Handle Instructions (Fallback if empty)
+    const instructions = recipe.instructions ? recipe.instructions : "No instructions provided for this recipe.";
+    document.getElementById('modal-instructions').innerText = instructions;
+
+    // Handle Ingredients List
+    const ingList = document.getElementById('modal-ingredients');
+    ingList.innerHTML = '<ul>' + 
+        recipe.ingredients.map(ing => `<li>${ing.quantity} ${ing.unit} <strong>${ing.name}</strong></li>`).join('') + 
+        '</ul>';
+
+    // Show Modal
+    modal.style.display = "block";
+}
+
+// Generate Filter Buttons
 function generateFilters() {
     // 1. Get unique cuisines present in the data
     const cuisines = ['All', ...new Set(allRecipes.map(r => r.cuisine))].sort();
